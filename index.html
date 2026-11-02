@@ -160,8 +160,9 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // ===== PENGATURAN =====
-    const FILE_MANGROVE  = 'Data/Mangrove_Masbangun.json';
-    const FILE_DESA      = 'Data/Batas_Administrasi_Desa.json';
+    // Folder data dicoba dengan "Data" dan "data", supaya tidak gagal karena beda huruf besar/kecil
+    const FILE_MANGROVE  = ['Data/Mangrove_Masbangun.json', 'data/Mangrove_Masbangun.json'];
+    const FILE_DESA      = ['Data/Batas_Administrasi_Desa.json', 'data/Batas_Administrasi_Desa.json'];
     const NAMA_DESA      = 'Masbangun';
     const KOLOM_TAHUN    = 'tahun';
     const KOLOM_LUAS     = 'luas_ha';
@@ -363,15 +364,21 @@
     }
 
     // ===== MEMUAT DATA =====
-    Promise.all([
-      fetch(FILE_MANGROVE).then(function (respon) {
-        if (!respon.ok) { throw new Error('File tidak ditemukan (kode ' + respon.status + ')'); }
-        return respon.json();
-      }),
-      fetch(FILE_DESA).then(function (respon) {
-        if (!respon.ok) { throw new Error('kode ' + respon.status); }
+    // Coba alamat satu per satu sampai ada yang berhasil dibuka
+    function ambilJSON(daftar, i) {
+      i = i || 0;
+      return fetch(daftar[i]).then(function (respon) {
+        if (!respon.ok) { throw new Error('File ' + daftar[i] + ' tidak ditemukan (kode ' + respon.status + ')'); }
         return respon.json();
       }).catch(function (err) {
+        if (i + 1 < daftar.length) { return ambilJSON(daftar, i + 1); }
+        throw err;
+      });
+    }
+
+    Promise.all([
+      ambilJSON(FILE_MANGROVE),
+      ambilJSON(FILE_DESA).catch(function (err) {
         console.error('Batas desa gagal dimuat', err);
         return null;
       })
